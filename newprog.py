@@ -4,73 +4,87 @@ import urllib.parse
 import csv
 
 url = 'https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html'
-url2 = 'https://books.toscrape.com/index.html'
 
 return_ok = 200
 base_of_url = url[:-10]
+
 
 def request_site(url): # intérroger le site internet
 	response = requests.get(url)
 	return response
 
+
 def get_urls_categories(url): # obtenir les URLs des différentes catégories
-	soup = BeautifulSoup(requests_site(url).content, 'lxml').find('ul', {'class': 'nav nav-list'}).findAll('li')[:1]
+	soup = BeautifulSoup(request_site(url).content, 'lxml').find('ul', {'class': 'nav nav-list'}).findAll('li')[:1]
 	category_urls_list = []
 	for item in soup:
 		for links in item.findAll('a', href=True):
 			category_urls_list.append(urllib.parse.urljoin(str(url), str(links['href'])))
 
-def get_urls_1_category (base_url, url): # obtenir dnas une liste les URLs pour une catégorie
 
-	return_category = request_site(url)
-	soup = BeautifulSoup(return_category.content, 'lxml')
+def get_urls_1_category (base_url, url): # obtenir dans une liste les URLs pour une catégorie
+
+	soup = BeautifulSoup(request_site(url).content, 'lxml')
 	products_links = []
-	i=0
-	
-	if soup.find('li', {'class': 'next'}) != 'none':
-		i+=1
-		response_page = request_site(f'{base_url}page-{i}.html')
-		# BOUCLE INFINIE IL FAUT METTRE A JOUR LE SOUP A CHAQUE TOUR POUR NE PAS ETRE BLOQUE, VERIFIER LA CONDITION WHILE
-		if response_page.status_code == return_ok:
-			products_infos = BeautifulSoup(response_page.content, 'lxml').findAll('h3')
+		
+	if soup.find('li', {'class': 'next'}) == None: #si il n'y a qu'une seule page (donc pas de bouton next) on récupère les infos sur la page
+		
+		products_url = soup.findAll('h3')
+		for item in products_url:
+			for links in item.findAll('a', href=True):
+				products_links.append(urllib.parse.urljoin(str(url), str(links['href'])))
 
-			for item in products_infos:
+	else: #s'il y a un bouton suivant il y a aussi une page 'page-1.html' identique à la page index.html
+		i=1
+		
+		while BeautifulSoup(request_site(f'{base_url}page-{i}.html').content, 'lxml').find('div', {'class': 'page-header action'}) is not None:
+			
+			products_url = BeautifulSoup(request_site(f'{base_url}page-{i}.html').content, 'lxml').findAll('h3')
+
+			for item in products_url:
 				for links in item.findAll('a', href=True):
 					products_links.append(urllib.parse.urljoin(str(url), str(links['href'])))
+			
+			i= i+1
 
-		requests.get
-
-	print(products_links)
-	return products_links
-
-"""get_urls_1_category(base_of_url, url)""" # appliquer la formule de recherche des liens d'un catégorie
+	return products_links #retourner la liste des URLs obtenues
 
 
-def caracteristic_list(target_return):# trouver le nom des caractéristiques pour un livre
+def caracteristic_list(target_return):# trouver le nom des caractéristiques pour un livre (en excluant celles non demandée dans le projet 2)
 			
 	th_list = []
-	ths = target_return.find("table", {"class": 'table-striped'}).find_all('th')
-	for target1 in ths:
-		th_list.append(th.text)
+	good_indices =[0, 2, 3, 5] 
+	ths_find = target_return.find("table", {"class": 'table-striped'}).findAll('th')
+	ths = []
+	
+	for i in good_indices:
+		ths.append(ths_find[i])
+		for th in ths:
+			th_list.append(th.text)
 	return th_list
 
 		
-def value_list(target_return): #trouver les valeurs associées aux caractéristiques d'un livre
+def value_list(target_return): #trouver les valeurs associées aux caractéristiques d'un livre (en excluant celles non demandée dans le projet 2)
 
 	td_list = []
-	tds = target_return.find("table", {"class": 'table-striped'}).find_all('td')
-	for td in tds:
-		td_list.append(td.text)
+	good_indices =[0, 2, 3, 5] 
+	tds_find = target_return.find("table", {"class": 'table-striped'}).findAll('td')
+	tds = []
+	
+	for i in good_indices:
+		tds.append(tds_find[i])
+		for td in tds:
+			td_list.append(td.text)
 	return td_list
 
 
-def books_informations(link_list): # récupérations des informations d'un livre
+def books_informations(link_list): # récupération des informations d'un livre
 
-	picture_link_list = []
+	list_of_books_information_dicts = [] # liste globale contenant le dictionnaire généré de chaque livre
 
 	for link in link_list:
 
-		url_return = BeautifulSoup(requests.get(link).content, 'lxml').encode('utf-8')
+		url_return = BeautifulSoup(request_site(link).content, 'lxml')
 
 		book_infos1 = {}
 			
@@ -85,7 +99,7 @@ def books_informations(link_list): # récupérations des informations d'un livre
 		description = url_return.find('article', 'product_page').find("p", recursive=False) or ""
 		if description:
 			description = description.text
-			book_infos1["product description"] = description 
+			book_infos1["product description"] = description[:-7] 
 
 
 		book_infos1['Rating'] = url_return.find('p', {'class': 'star-rating'}).get('class')
@@ -93,31 +107,44 @@ def books_informations(link_list): # récupérations des informations d'un livre
 		book_infos2 = dict(zip(caracteristic_list(url_return), value_list(url_return)))
 		
 
-		img_url = soup.find('img').get('src')
+		img_url = url_return.find('img').get('src')
 		complete_img_url = urllib.parse.urljoin(url, img_url)
 		
 		
-		ook_total_infos = {**book_infos1, **book_infos2}
+		book_total_infos = {**book_infos1, **book_infos2}
 
 		book_total_infos.update({"Picture URL": complete_img_url})
 
+		list_of_books_information_dicts.append(book_total_infos)		
+
+	return list_of_books_information_dicts # retour de la liste des dictionnaires
+
+
+
+def csv_transfer(dictionary_list): # transfert des informations issues de la liste globale des dictionnaires dans un fichier.csv
+
+	first_dictionary = dictionary_list[0]
+	columns_header = []
+	for k in first_dictionary:
+		columns_header.append(k)
+
+	data_dict = []
+	for d in dictionary_list:
+		data_dict.append(d.values()) 
+
 	
-	print(book_total_infos)
-	return book_total_infos
+	with open('filetest.csv', 'w') as essai:
+		writer = csv.writer(essai)
+		dict_writer = csv.DictWriter(essai, fieldnames=columns_header)
+		dict_writer.writeheader()
+
+		for i in data_dict:
+			writer.writerow(i)
+
+	essai.close()
 
 
-def csv_transfer (dictionary): #fonction à terminer ou à réorganiser pour transférer les informations obtenues dans un fichier csv
+book_link_list = get_urls_1_category(base_of_url, url)
+list_of_books_information_dicts = books_informations(book_link_list)
 
-	data_dict = dictionary.values()
-
-    columns_header = dictionary.keys()
-    
-
-    with open('filetest.csv', 'w') as essai:
-        writer = csv.writer(essai)
-        dict_writer = csv.DictWriter(essai, fieldnames=columns_header)
-        dict_writer.writeheader()
-
-        writer.writerow(data_dict)
-
-    essai.close()
+csv_transfer(list_of_books_information_dicts)
