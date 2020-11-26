@@ -2,8 +2,10 @@ from bs4 import BeautifulSoup
 import requests
 import urllib.parse
 import csv
+import os
+import io
 
-url = 'https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html'
+url = 'https://books.toscrape.com/index.html'
 
 return_ok = 200
 base_of_url = url[:-10]
@@ -11,15 +13,31 @@ base_of_url = url[:-10]
 
 def request_site(url): # intérroger le site internet
 	response = requests.get(url)
+	response.encoding = 'utf-8'
 	return response
 
 
-def get_urls_categories(url): # obtenir les URLs des différentes catégories
-	soup = BeautifulSoup(request_site(url).content, 'lxml').find('ul', {'class': 'nav nav-list'}).findAll('li')[:1]
-	category_urls_list = []
+def get_categories_and_urls(url): # obtenir les nom des différents catégories et les URLs associées
+	soup = BeautifulSoup(request_site(url).content, 'lxml').find('ul', {'class': 'nav nav-list'}).findAll('li')[1:]
+	urls_list = []
+	category_name = []
+	
 	for item in soup:
 		for links in item.findAll('a', href=True):
-			category_urls_list.append(urllib.parse.urljoin(str(url), str(links['href'])))
+			urls_list.append(urllib.parse.urljoin(str(url), str(links['href'])))
+	
+	for item in soup:
+		for name in item.select('a'):
+			for specific in name:
+				category_name.append(specific.strip())
+
+	"""zip_iterator = zip(category_name, urls_list)
+	category_name_and_urls = dict(zip_iterator)"""
+
+	name_and_urls = []
+	name_and_urls.append(category_name)
+	name_and_urls.append(urls_list)
+	return name_and_urls
 
 
 def get_urls_1_category (base_url, url): # obtenir dans une liste les URLs pour une catégorie
@@ -121,7 +139,7 @@ def books_informations(link_list): # récupération des informations d'un livre
 
 
 
-def csv_transfer(dictionary_list): # transfert des informations issues de la liste globale des dictionnaires dans un fichier.csv
+def csv_transfer(dictionary_list, category_name): # transfert des informations issues de la liste globale des dictionnaires dans un fichier.csv
 
 	first_dictionary = dictionary_list[0]
 	columns_header = []
@@ -133,7 +151,7 @@ def csv_transfer(dictionary_list): # transfert des informations issues de la lis
 		data_dict.append(d.values()) 
 
 	
-	with open('filetest.csv', 'w') as essai:
+	with open(category_name + ' category.csv' , 'w', encoding="utf-8") as essai:
 		writer = csv.writer(essai)
 		dict_writer = csv.DictWriter(essai, fieldnames=columns_header)
 		dict_writer.writeheader()
@@ -144,7 +162,22 @@ def csv_transfer(dictionary_list): # transfert des informations issues de la lis
 	essai.close()
 
 
-book_link_list = get_urls_1_category(base_of_url, url)
-list_of_books_information_dicts = books_informations(book_link_list)
+def take_all_informations_of_all_books(url):
+	#pour chaque url dans urls_list appliquer au reste du code
+	category_name = get_categories_and_urls(url)[0]
+	urls_list = get_categories_and_urls(url)[1]
 
-csv_transfer(list_of_books_information_dicts)
+
+	i = 0
+	for category_url in urls_list:
+		url_base = category_url[:-10]
+		book_link_list = get_urls_1_category(url_base, category_url)
+		list_of_books_information_dicts = books_informations(book_link_list)
+		csv_transfer(list_of_books_information_dicts, category_name[i])
+
+		i += 1
+
+
+take_all_informations_of_all_books(url)
+
+
