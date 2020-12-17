@@ -1,10 +1,9 @@
 from bs4 import BeautifulSoup
-import requests
 import urllib.parse
-from scraping.Request_site import request_site
+from scraping.request import request_site
 
 
-def get_categories_and_urls(url):
+def get_categories(url):
     """scraping names and urls of each book category"""
 
     soup = (
@@ -17,7 +16,8 @@ def get_categories_and_urls(url):
 
     for item in soup:
         for links in item.findAll("a", href=True):
-            urls_list.append(urllib.parse.urljoin(str(url), str(links["href"])))
+            (urls_list.append(urllib.parse.urljoin(str(url),
+                                                   str(links["href"]))))
 
     for item in soup:
         for name in item.select("a"):
@@ -30,7 +30,7 @@ def get_categories_and_urls(url):
     return name_and_urls
 
 
-def get_urls_1_category(category_url):
+def get_1_category(category_url):
     """ url scraping of each book from 1 category"""
 
     products_links = []
@@ -76,7 +76,8 @@ def get_urls_1_category(category_url):
             for item in products_url:
                 for links in item.findAll("a", href=True):
                     products_links.append(
-                        urllib.parse.urljoin(str(category_url), str(links["href"]))
+                        urllib.parse.urljoin(str(category_url),
+                                             str(links["href"]))
                     )
 
     return products_links

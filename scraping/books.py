@@ -1,16 +1,20 @@
 from bs4 import BeautifulSoup
-import requests
 import urllib.parse
-from scraping.Request_site import request_site
+from scraping.request import request_site
+
 
 def caracteristic_list(target_return):
-    """scraping of researched caracteristics names 
+    """scraping of researched caracteristics names
     from the caractéristics list on the html page
     """
 
     th_list = []
     good_indices = [0, 2, 3, 5]
-    ths_find = target_return.find("table", {"class": "table-striped"}).findAll("th")
+    ths_find = (
+        target_return.find("table", {"class": "table-striped"})
+        .findAll("th")
+    )
+
     ths = []
 
     for i in good_indices:
@@ -21,11 +25,17 @@ def caracteristic_list(target_return):
 
 
 def value_list(target_return):
-    """scraping of researched values from the caractéristics list on the html page"""
+    """scraping of researched values from the caractéristics list
+    on the html page
+    """
 
     td_list = []
     good_indices = [0, 2, 3, 5]
-    tds_find = target_return.find("table", {"class": "table-striped"}).findAll("td")
+    tds_find = (
+        target_return.find("table", {"class": "table-striped"})
+        .findAll("td")
+    )
+
     tds = []
 
     for i in good_indices:
@@ -38,7 +48,7 @@ def value_list(target_return):
 def books_informations(URL, link_list):
     """informations scraping for each book"""
 
-    list_of_books_information_dicts = []
+    books_dicts = []
 
     i = 1
 
@@ -51,23 +61,28 @@ def books_informations(URL, link_list):
         book_infos1["Book Title"] = url_return.find("h1").get_text()
 
         book_infos1["Category"] = (
-            url_return.find("ul", {"class": "breadcrumb"}).findAll("a")[2].get_text()
+            url_return.find("ul", {"class": "breadcrumb"}).findAll("a")[2]
+            .get_text()
         )
 
         book_infos1["Book URL"] = link
 
         description = (
-            url_return.find("article", "product_page").find("p", recursive=False) or ""
+            url_return.find("article", "product_page")
+            .find("p", recursive=False) or ""
         )
         if description:
             description = description.text
             book_infos1["product description"] = description[:-7]
 
-        book_infos1["Rating"] = url_return.find("p", {"class": "star-rating"}).get(
-            "class"
+        book_infos1["Rating"] = (
+            url_return.find("p", {"class": "star-rating"})
+            .get("class")
         )
 
-        book_infos2 = dict(zip(caracteristic_list(url_return), value_list(url_return)))
+        book_infos2 = dict(zip(caracteristic_list(url_return),
+                           value_list(url_return))
+                           )
 
         img_url = url_return.find("img").get("src")
         complete_img_url = urllib.parse.urljoin(URL, img_url)
@@ -93,8 +108,8 @@ def books_informations(URL, link_list):
         )
         book_total_infos.update({"Picture name": final_img_name})
 
-        list_of_books_information_dicts.append(book_total_infos)
+        books_dicts.append(book_total_infos)
 
         i += 1
 
-    return list_of_books_information_dicts
+    return books_dicts
