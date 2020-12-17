@@ -1,3 +1,6 @@
+""" module to save scraped information on a csv file"""
+
+
 import csv
 import os
 

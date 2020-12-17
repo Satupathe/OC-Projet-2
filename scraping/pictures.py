@@ -1,3 +1,6 @@
+"""Module to scrape picture from https://books.toscrape.com"""
+
+
 import os
 import urllib.request
 
