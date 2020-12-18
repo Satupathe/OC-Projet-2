@@ -1,6 +1,6 @@
 <<<<<<< HEAD
 """main function calling for every modules useful to extract
-informations from https://books.toscrape.com
+informations from https://books.toscrape.com website
 """
 
 =======
