@@ -1,7 +1,10 @@
+<<<<<<< HEAD
 """main function calling for every modules useful to extract
 informations from https://books.toscrape.com
 """
 
+=======
+>>>>>>> 737bb1a9778918260ea22cc57438a23b779e7f15
 from tqdm import tqdm
 from scraping import urls, books, save, pictures
 
